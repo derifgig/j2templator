@@ -1,0 +1,5 @@
+- name: user
+  email: user@domain.com
+
+- name: admin
+  email: admin@domain.com

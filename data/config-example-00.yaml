@@ -1,0 +1,15 @@
+---
+- name: "Item 111"
+  template: ./data/example/template01.j2
+  output_path: ./data/output/
+  output_file_name_template: file-{{ name }}.conf
+  input_data_file_yaml: ./data/input-data-example.yaml
+  # modes:  all - all items to one file
+  #         one - one item to separated file
+  mode: one
+
+- name: "Item 222"
+  template: ./data/example/template01.j2
+  output_path: ./data/output/
+  output_file_name_template: file-{{ name }}.conf
+
