@@ -4,12 +4,6 @@ Tool for generate files from Jinja2 templates.
 Config file - YAML
 Source data file format - YAML
 
-## Run
-
-```bash
-python3 j2templator.py --config data/config-example-00.yaml
-```
-
 ## Config file 
 
 ```yaml
@@ -39,3 +33,29 @@ python3 j2templator.py --config data/config-example-00.yaml
 
 `mode` - [all|one] 'all'(default) -  will be created one output file, 'one' - will be created separated file for each item of input data
 
+## Install for current user 
+
+Check for `~/.local/bin` is present in `PATH`.
+
+```bash
+mkdir ~/.local/bin -p
+cp j2templator.py ~/.local/bin/j2templator
+chmod +x ~/.local/bin/j2templator
+```
+
+## Install to system 
+
+```bash
+sudo cp j2templator.py /usr/local/bin/j2templator
+sudo chmod +x /usr/local/bin/j2templator
+```
+
+## Run
+
+```bash
+# Example data in this project
+python3 j2templator.py --config data/config-example-00.yaml
+
+# 
+j2templator -c /path/to/file/config.yaml
+```

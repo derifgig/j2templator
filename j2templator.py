@@ -1,8 +1,4 @@
 #!/usr/bin/python
-# JTemplator
-# GitHub: https://github.com/derifgig/jtemplator
-#
-
 import argparse
 import logging
 import os
@@ -10,10 +6,9 @@ import yaml
 import jinja2
 
 APP = "j2templator"
+GITHUBURL = "https://github.com/derifgig/j2templator"
 VERSION = "v0.1"
 DEFAULT_LOGGING_LEVEL = logging.INFO
-
-#
 CFG = []
 
 # field names in YAML config file
@@ -25,6 +20,7 @@ cf_output_file_name_template = 'output_file_name_template'
 cf_input_data_file_yaml = 'input_data_file_yaml'
 cf_mode = 'mode'
 
+
 class CustomFormatter(logging.Formatter):
 
     grey = "\x1b[38;20m"
@@ -33,7 +29,6 @@ class CustomFormatter(logging.Formatter):
     red = "\x1b[31;20m"
     bold_red = "\x1b[31;1m"
     reset = "\x1b[0m"
-    #format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
     format = "%(message)s"
 
     FORMATS = {
@@ -50,9 +45,10 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 # end of class CustomFormatter
 
+
 def parse_arguments():
     parser = argparse.ArgumentParser(
-        description=f"Jinja2 Templator {VERSION}"
+        description=f"{APP} {VERSION} {GITHUBURL}"
     )
     parser.add_argument("-c", "--config",
                         required=True,
@@ -117,9 +113,9 @@ def validate_config_file(config_file):
         for item_index in range(len(config_data)):
             item_config = config_data[item_index]
             item_name = item_config[cf_name] if cf_name in item_config else ''
-            item_prefix = 'work [%s] (%s)' % (item_index, item_name)
+            item_prefix = 'check [%s] (%s)' % (item_index, item_name)
 
-            logger.info('%s : Validation config item' % item_prefix)
+            logger.debug('%s : Validation config item' % item_prefix)
 
             # checking for required fields
             is_required_fields = True
@@ -129,7 +125,7 @@ def validate_config_file(config_file):
                     is_required_fields = False
 
             if is_required_fields:
-                logger.info('%s : Item is valid' % item_prefix)
+                logger.debug('%s : Item is valid' % item_prefix)
 
             else:
                 is_items_valid = False
@@ -158,6 +154,7 @@ def validate_config_file(config_file):
 
     # normal final of procedure
     return True
+
 
 def doit():
 
@@ -220,6 +217,9 @@ def doit():
                     fh.close()
 
             case 'one':
+
+                logger.debug('Data type of content: %s' % type(content_data))
+
                 for data_index in range(len(content_data)):
                     item_content = content_data[data_index]
 
@@ -237,7 +237,7 @@ def doit():
                         with open(output_file_name, "w") as fh:
                             fh.write(j2_template.render(content=item_content))
                     except IOError:
-                        logger.error('%s : Writin file IOError : %s' % (item_prefix, output_file_name))
+                        logger.error('%s : Writing file IOError : %s' % (item_prefix, output_file_name))
                         continue
                     finally:
                         fh.close()
@@ -248,10 +248,11 @@ def doit():
         logger.info('%s : Done' % item_prefix)
     return True
 
+
 def main():
 
-    logger.info('Started '+APP+' '+VERSION)
     args = parse_arguments()
+    logger.info('Started '+APP+' '+VERSION + ' '+GITHUBURL)
 
     if args.verbose:
         logger.setLevel(logging.DEBUG)
