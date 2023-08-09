@@ -1,7 +1,9 @@
 # J2Templator
 
 Tool for generate files from Jinja2 templates.
+
 Config file - YAML
+
 Source data file format - YAML
 
 ## Config file 
