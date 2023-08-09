@@ -1,15 +1,14 @@
 ---
-- name: "Item 111"
-  template: ./data/example/template01.j2
-  output_path: ./data/output/
-  output_file_name_template: file-{{ name }}.conf
-  input_data_file_yaml: ./data/input-data-example.yaml
-  # modes:  all - all items to one file
-  #         one - one item to separated file
+- name: "ex00"
+  template: ./data/example00/template00.j2
+  input_data_file_yaml: ./data/example00/data.yaml
+  output_path: ./output/
+  output_file_name_template: output-all.conf
+
+- name: "ex01"
+  template: ./data/example00/template01.j2
+  input_data_file_yaml: ./data/example00/data.yaml
+  output_path: ./output/by-one/
+  output_path_create: yes
+  output_file_name_template: output-one-{{ item.name }}.conf
   mode: one
-
-- name: "Item 222"
-  template: ./data/example/template01.j2
-  output_path: ./data/output/
-  output_file_name_template: file-{{ name }}.conf
-
