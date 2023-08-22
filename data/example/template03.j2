@@ -1,5 +1,6 @@
 ---
 {%- for i in content %}
-- name: {{ i[0] }}
-  email: {{ i[1] }}
+- id: {{ i[0] }}
+  login: {{ ad.ad_domain}}\\{{ i[0] }}
+  email: {{ i[1] }}@{{ ad.domain }}
 {% endfor %}

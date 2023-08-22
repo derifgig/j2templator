@@ -19,6 +19,7 @@ cf_output_path_create = 'output_path_create'
 cf_output_file_name_template = 'output_file_name_template'
 cf_input_data_file = 'input_data_file'
 cf_input_data_type = 'input_data_type'
+cf_additional_data_file = 'additional_data_file'
 cf_mode = 'mode'
 
 
@@ -223,6 +224,26 @@ def doit():
                     logger.error('%s : No data in file: %s' % (item_prefix, item[cf_input_data_file]))
                     return False
 
+        # Debug
+        logger.debug(f'content data: {content_data}')
+
+
+        # if additional_data_file present in config
+        if cf_additional_data_file in item:
+            # Reading additional data
+            try:
+                logger.debug(f'Reading additional data file"  {item[cf_additional_data_file]}')
+                additional_data_file = open(item[cf_additional_data_file], 'r')
+                additional_data = yaml.safe_load(additional_data_file)
+                logger.debug(f'additional_data: {additional_data}')
+            except IOError:
+                logger.error('%s : Error reading additional data file: %s' % (item_prefix, item[cf_additional_data_file]))
+                return False
+            finally:
+                additional_data_file.close()
+        else:
+            additional_data = None
+
         # Checking for existing OUTPUT directory
         try:
             result = os.path.isdir(item[cf_output_path])
@@ -238,7 +259,7 @@ def doit():
             return False
 
 
-        logger.debug(f'content data: {content_data}')
+
         # Working ...
         match item[cf_mode]:
             case 'all':
@@ -248,7 +269,7 @@ def doit():
 
                 try:
                     with open(output_file_name, "w") as fh:
-                        fh.write(j2_template.render(content=content_data))
+                        fh.write(j2_template.render(content=content_data,ad=additional_data))
                 except IOError:
                     logger.error('%s : Writing file IOError : %s' % (item_prefix, output_file_name))
                     continue
@@ -263,7 +284,7 @@ def doit():
                     item_content = content_data[data_index]
 
                     j2_template_output_file = jinja2.Template(item[cf_output_file_name_template])
-                    output_file_name = j2_template_output_file.render(item=item_content)
+                    output_file_name = j2_template_output_file.render(item=item_content,ad=additional_data)
                     output_file_name = item[cf_output_path]+'/'+output_file_name
 
                     # checking for existing files, it's no problem
@@ -274,7 +295,7 @@ def doit():
 
                     try:
                         with open(output_file_name, "w") as fh:
-                            fh.write(j2_template.render(content=item_content))
+                            fh.write(j2_template.render(content=item_content,ad=additional_data))
                     except IOError:
                         logger.error('%s : Writing file IOError : %s' % (item_prefix, output_file_name))
                         continue

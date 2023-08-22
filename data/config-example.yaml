@@ -18,6 +18,7 @@
 
 - name: "txt"
   template: ./data/example/template03.j2
+  additional_data_file: ./data/example/additional-data.yml
   input_data_file: ./data/example/data.txt
   input_data_type: txt
   output_path: ./output
