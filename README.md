@@ -13,10 +13,10 @@ Source data file format - YAML | TXT
 - name: "Example Item 1" 
   template: ./data/example00/template00.j2
   input_data_file: ./data/example00/data.yaml
-  input_data_type: txt
+  input_data_type: yml
   output_path: ./output/
   output_path_create: yes
-  output_file_name_template: output-one-{{ }}.conf
+  output_file_name_template: output-one-{{ item.id }}.conf
   mode: one
 ```
 
