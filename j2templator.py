@@ -7,7 +7,7 @@ import jinja2
 
 APP = "j2templator"
 GITHUBURL = "https://github.com/derifgig/j2templator"
-VERSION = "v0.1"
+VERSION = "v0.2"
 DEFAULT_LOGGING_LEVEL = logging.INFO
 CFG = []
 
@@ -17,7 +17,8 @@ cf_template = 'template'
 cf_output_path = 'output_path'
 cf_output_path_create = 'output_path_create'
 cf_output_file_name_template = 'output_file_name_template'
-cf_input_data_file_yaml = 'input_data_file_yaml'
+cf_input_data_file = 'input_data_file'
+cf_input_data_type = 'input_data_type'
 cf_mode = 'mode'
 
 
@@ -80,7 +81,7 @@ def validate_config_file(config_file):
         cf_template,
         cf_output_path,
         cf_output_file_name_template,
-        cf_input_data_file_yaml,
+        cf_input_data_file,
     ]
     
     mode_available_values = [
@@ -88,9 +89,9 @@ def validate_config_file(config_file):
         'one'
     ]
 
-    mode_available_values = [
-        'all',
-        'one'
+    input_data_type = [
+        'yml',
+        'txt'
     ]
 
     logger.debug("Validation config file: %s" % config_file)
@@ -136,6 +137,16 @@ def validate_config_file(config_file):
 
             if cf_mode not in item_config:
                 item_config[cf_mode] = 'all'
+            else:
+                if item_config[cf_mode] not in mode_available_values:
+                    logger.error('%s : Unknown mode [%s]' % (item_prefix, item_config[cf_mode]))
+
+            # Default data type - yml
+            if cf_input_data_type not in item_config:
+                item_config[cf_input_data_type] = 'yml'
+            else:
+                if item_config[cf_input_data_type] not in input_data_type:
+                    logger.error('%s : Unknown input data type [%s]' % (item_prefix, item_config[cf_input_data_type]))
 
             if cf_output_path_create not in item_config:
                 item_config[cf_output_path_create] = False
@@ -164,7 +175,7 @@ def doit():
 
     for item_index in range(len(CFG)):
         item = CFG[item_index]
-        item_prefix = 'work [%s] (%s)' % (item_index, item[cf_name])
+        item_prefix = 'exec [%s] (%s)' % (item_index, item[cf_name])
         logger.info('%s : Started. Mode: %s Output path: %s' % (
             item_prefix,
             item[cf_mode],
@@ -178,13 +189,39 @@ def doit():
         try:
             with open(item[cf_template]) as f:
                 j2_template = jinja2.Template(f.read())
+        except IOError:
+            logger.error('%s : Error reading template file: %s' % (item_prefix, item[cf_template]))
+            return False
         finally:
             f.close()
 
 
-        # data
-        content_data_file = open(item[cf_input_data_file_yaml], 'r')
-        content_data = yaml.safe_load(content_data_file)
+        # Reading input data
+        match item[cf_input_data_type]:
+
+            case 'yml':
+                try:
+                    content_data_file = open(item[cf_input_data_file], 'r')
+                    content_data = yaml.safe_load(content_data_file)
+                except IOError:
+                    logger.error('%s : Error in parsing YML file: %s' % (item_prefix, item[cf_output_path]))
+                    return False
+
+            case 'txt':
+                content_data = []
+                try:
+                    content_data_file = open(item[cf_input_data_file], 'r')
+                    for line in content_data_file:
+                        li = line.strip()
+                        if not li.startswith("#"):
+                            content_data.append(li.split())
+                except IOError:
+                    logger.error('%s : Error reading file: %s' % (item_prefix, item[cf_input_data_file]))
+                    return False
+
+                if len(content_data) == 0:
+                    logger.error('%s : No data in file: %s' % (item_prefix, item[cf_input_data_file]))
+                    return False
 
         # Checking for existing OUTPUT directory
         try:
@@ -200,6 +237,8 @@ def doit():
             logger.error('%s : Output directory checking error: %s' % (item_prefix, item[cf_output_path]))
             return False
 
+
+        logger.debug(f'content data: {content_data}')
         # Working ...
         match item[cf_mode]:
             case 'all':
