@@ -66,13 +66,8 @@ def parse_arguments():
 def check_file_exist(filename, is_problem=True):
     try:
         result = os.path.exists(filename)
-        if not result and is_problem:
-            logger.error("  File not found: %s " % filename)
-        else:
-            logger.debug("  File present: %s " % filename)
         return result
     except IOError:
-        logger.error("  File not accessible: %s " % filename)
         return False
 
 
@@ -140,7 +135,7 @@ def validate_config_file(config_file):
             for i in files:
                 if i in item_config:
                     if not check_file_exist(item_config[i]):
-                        logger.error('%s : No file: [%s]' % (item_prefix, item_config[i]))
+                        logger.error('%s : Source file not found: [%s]' % (item_prefix, item_config[i]))
 
             # add default values
             if cf_name not in item_config:
@@ -238,21 +233,23 @@ def doit():
         logger.debug(f'content data: {content_data}')
 
 
+        # by default additional data not present
+        additional_data = None
+
         # if additional_data_file present in config
         if cf_additional_data_file in item:
-            # Reading additional data
-            try:
-                logger.debug(f'Reading additional data file"  {item[cf_additional_data_file]}')
-                additional_data_file = open(item[cf_additional_data_file], 'r')
-                additional_data = yaml.safe_load(additional_data_file)
-                logger.debug(f'additional_data: {additional_data}')
-            except IOError:
-                logger.error('%s : Error reading additional data file: %s' % (item_prefix, item[cf_additional_data_file]))
-                return False
-            finally:
-                additional_data_file.close()
-        else:
-            additional_data = None
+            if check_file_exist(item[cf_additional_data_file],False):
+                # Reading additional data
+                try:
+                    logger.debug(f'Reading additional data file"  {item[cf_additional_data_file]}')
+                    additional_data_file = open(item[cf_additional_data_file], 'r')
+                    additional_data = yaml.safe_load(additional_data_file)
+                    logger.debug(f'additional_data: {additional_data}')
+                except IOError:
+                    logger.error('%s : Error reading additional data file: %s' % (item_prefix, item[cf_additional_data_file]))
+                    return False
+                finally:
+                    additional_data_file.close()
 
         # Checking for existing OUTPUT directory
         try:

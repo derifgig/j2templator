@@ -3,7 +3,7 @@
   template: ./data/example/template01.j2
   input_data_file: ./data/example/data.txt
   input_data_type: txt
-  additional_data_file: ./data/example/additional-data.yml
+  additional_data_file: ./data/example/additional-data.yaml
   output_path: ./output
   output_path_create: yes
   output_file_name_template: data.yml
