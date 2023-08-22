@@ -1,2 +1,6 @@
-[config]
-  {{ content[0] }}={{ content[1] }}
+{%- for i in content %}
+- id: {{ i[0] }}-{{ ad.domain }}
+  login: {{ ad.ad_domain}}\\{{ i[0] }}
+  email: {{ i[0] }}@{{ ad.domain }}
+  password: {{ i[1]}}
+{% endfor %}
