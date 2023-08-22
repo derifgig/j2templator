@@ -1,0 +1,24 @@
+---
+- name: "yml"
+  template: ./data/example/template00.j2
+  input_data_file: ./data/example/data.yaml
+  input_data_type: yml
+  output_path: ./output
+  output_path_create: yes
+  output_file_name_template: output-all.conf
+
+- name: "txt"
+  template: ./data/example/template01.j2
+  input_data_file: ./data/example/data.txt
+  input_data_type: txt
+  output_path: ./output/by-one
+  output_path_create: yes
+  output_file_name_template: output-one-{{ item[0] }}.conf
+  mode: one
+
+- name: "txt"
+  template: ./data/example/template03.j2
+  input_data_file: ./data/example/data.txt
+  input_data_type: txt
+  output_path: ./output
+  output_file_name_template: output-example-03.yml
