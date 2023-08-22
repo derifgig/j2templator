@@ -55,11 +55,11 @@ def parse_arguments():
     parser.add_argument("-c", "--config",
                         required=True,
                         help="Config file in YML format")
-    parser.add_argument("-v", "--verbose",
+    parser.add_argument("-d", "--debug",
                         action="store_true",
                         required=False,
                         default=False,
-                        help="verbose mode")
+                        help="Debug mode")
     return parser.parse_args()
 
 
@@ -83,6 +83,12 @@ def validate_config_file(config_file):
         cf_output_path,
         cf_output_file_name_template,
         cf_input_data_file,
+    ]
+
+    files = [
+        cf_template,
+        cf_input_data_file,
+        cf_additional_data_file,
     ]
     
     mode_available_values = [
@@ -128,9 +134,13 @@ def validate_config_file(config_file):
 
             if is_required_fields:
                 logger.debug('%s : Item is valid' % item_prefix)
-
             else:
                 is_items_valid = False
+
+            for i in files:
+                if i in item_config:
+                    if not check_file_exist(item_config[i]):
+                        logger.error('%s : No file: [%s]' % (item_prefix, item_config[i]))
 
             # add default values
             if cf_name not in item_config:
@@ -314,7 +324,7 @@ def main():
     args = parse_arguments()
     logger.info('Started '+APP+' '+VERSION + ' '+GITHUBURL)
 
-    if args.verbose:
+    if args.debug:
         logger.setLevel(logging.DEBUG)
 
     logger.info("Config file: %s" % args.config)
