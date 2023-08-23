@@ -8,8 +8,11 @@
   output_path_create: yes
   output_file_name_template: data.yml
 
+
+# Example: Result of item 'txt' is source for item 'yml'
 - name: "yml"
   template: ./data/example/template02.j2
+  #
   check_ingore_file_absent: yes
   input_data_file: ./output/data.yml
   output_path: ./output/by-one
