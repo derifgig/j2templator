@@ -10,6 +10,7 @@
 
 - name: "yml"
   template: ./data/example/template02.j2
+  check_ingore_file_absent: yes
   input_data_file: ./output/data.yml
   output_path: ./output/by-one
   output_path_create: yes

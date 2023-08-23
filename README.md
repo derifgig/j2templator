@@ -27,6 +27,8 @@ Source data file format - YAML | TXT
 
 `template` - (required) path to template file (Jinja2)
 
+`check_ingore_file_absent` - [yes,**no**] ignore error of absent file on checking
+
 `input_data_file` - (required) source data
 
 `input_data_type` - [**yml**|txt]
