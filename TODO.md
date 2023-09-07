@@ -3,3 +3,4 @@
  - Error: no additional data file 
  - Error on render J2
  - add option: - check config
+ - add option: - step id for work
