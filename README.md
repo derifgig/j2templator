@@ -11,9 +11,10 @@ Source data file format - YAML | TXT
 ```yaml
 ---
 - name: "Example Item 1" 
-  template: ./data/example00/template00.j2
-  input_data_file: ./data/example00/data.yaml
+  template: ./data/example/template00.j2
+  input_data_file: ./data/example/data.yaml
   input_data_type: yml
+  additional_data_file: ./data/example/additional-data.yml
   output_path: ./output/
   output_path_create: yes
   output_file_name_template: output-one-{{ item.id }}.conf
@@ -25,6 +26,8 @@ Source data file format - YAML | TXT
 `name` - Title of config item
 
 `template` - (required) path to template file (Jinja2)
+
+`check_ingore_file_absent` - [yes,**no**] ignore error of absent file on checking
 
 `input_data_file` - (required) source data
 

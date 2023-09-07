@@ -14,11 +14,13 @@ CFG = []
 # field names in YAML config file
 cf_name = 'name'
 cf_template = 'template'
+cf_check_ingore_file_absent = 'check_ingore_file_absent'
 cf_output_path = 'output_path'
 cf_output_path_create = 'output_path_create'
 cf_output_file_name_template = 'output_file_name_template'
 cf_input_data_file = 'input_data_file'
 cf_input_data_type = 'input_data_type'
+cf_additional_data_file = 'additional_data_file'
 cf_mode = 'mode'
 
 
@@ -54,34 +56,35 @@ def parse_arguments():
     parser.add_argument("-c", "--config",
                         required=True,
                         help="Config file in YML format")
-    parser.add_argument("-v", "--verbose",
+    parser.add_argument("-d", "--debug",
                         action="store_true",
                         required=False,
                         default=False,
-                        help="verbose mode")
+                        help="Debug mode")
     return parser.parse_args()
 
 
-def check_file_exist(filename, is_problem=True):
+def check_file_exist(filename):
     try:
         result = os.path.exists(filename)
-        if not result and is_problem:
-            logger.error("  File not found: %s " % filename)
-        else:
-            logger.debug("  File present: %s " % filename)
         return result
     except IOError:
-        logger.error("  File not accessible: %s " % filename)
         return False
 
 
-def validate_config_file(config_file):
+def check_config_file(config_file):
 
     required_fields = [
         cf_template,
         cf_output_path,
         cf_output_file_name_template,
         cf_input_data_file,
+    ]
+
+    files = [
+        cf_template,
+        cf_input_data_file,
+        cf_additional_data_file,
     ]
     
     mode_available_values = [
@@ -97,6 +100,7 @@ def validate_config_file(config_file):
     logger.debug("Validation config file: %s" % config_file)
 
     if not check_file_exist(config_file):
+        logger.error(f"Config file not found: {config_file}")
         return False
 
     try:
@@ -116,7 +120,7 @@ def validate_config_file(config_file):
             item_name = item_config[cf_name] if cf_name in item_config else ''
             item_prefix = 'check [%s] (%s)' % (item_index, item_name)
 
-            logger.debug('%s : Validation config item' % item_prefix)
+            logger.debug('%s : Checking config item' % item_prefix)
 
             # checking for required fields
             is_required_fields = True
@@ -127,9 +131,30 @@ def validate_config_file(config_file):
 
             if is_required_fields:
                 logger.debug('%s : Item is valid' % item_prefix)
-
             else:
                 is_items_valid = False
+
+            check_ingore_file_absent = False
+            if cf_check_ingore_file_absent in item_config:
+                check_ingore_file_absent = item_config[cf_check_ingore_file_absent]
+
+            if check_ingore_file_absent:
+                logger.warning('%s : Absent files will be ignored' % item_prefix)
+
+            source_files_exist = True
+            for i in files:
+                if i in item_config:
+                    if not check_file_exist(item_config[i]):
+
+                        if check_ingore_file_absent:
+                            logger.warning('%s : Source file not found: [%s]' % (item_prefix, item_config[i]))
+                        else:
+                            logger.error('%s : Source file not found: [%s]' % (item_prefix, item_config[i]))
+                            source_files_exist = False
+
+            if not source_files_exist:
+                logger.error('%s : SKIPPED' % (item_prefix))
+                continue
 
             # add default values
             if cf_name not in item_config:
@@ -140,6 +165,8 @@ def validate_config_file(config_file):
             else:
                 if item_config[cf_mode] not in mode_available_values:
                     logger.error('%s : Unknown mode [%s]' % (item_prefix, item_config[cf_mode]))
+                    logger.error('%s : SKIPPED' % (item_prefix))
+                    continue
 
             # Default data type - yml
             if cf_input_data_type not in item_config:
@@ -147,6 +174,8 @@ def validate_config_file(config_file):
             else:
                 if item_config[cf_input_data_type] not in input_data_type:
                     logger.error('%s : Unknown input data type [%s]' % (item_prefix, item_config[cf_input_data_type]))
+                    logger.error('%s : SKIPPED' % (item_prefix))
+                    continue
 
             if cf_output_path_create not in item_config:
                 item_config[cf_output_path_create] = False
@@ -163,6 +192,8 @@ def validate_config_file(config_file):
         logger.error('Error parsing YAML data from config file')
         return False
 
+
+
     # normal final of procedure
     return True
 
@@ -170,7 +201,7 @@ def validate_config_file(config_file):
 def doit():
 
     if len(CFG) == 0:
-        logger.debug('Length of CFG is zero. Nothing to do')
+        logger.error('No valid data in config. Nothing to do')
         return False
 
     for item_index in range(len(CFG)):
@@ -182,8 +213,8 @@ def doit():
             item[cf_output_path])
         )
 
-        if not check_file_exist(item[cf_template],False):
-            logger.error('%s : Template file not found: %s' % (item_prefix,item[cf_template]))
+        if not check_file_exist(item[cf_template]):
+            logger.error('%s : Template file not found: %s.' % (item_prefix,item[cf_template]))
             continue
 
         try:
@@ -223,6 +254,28 @@ def doit():
                     logger.error('%s : No data in file: %s' % (item_prefix, item[cf_input_data_file]))
                     return False
 
+        # Debug
+        logger.debug(f'content data: {content_data}')
+
+
+        # by default additional data not present
+        additional_data = None
+
+        # if additional_data_file present in config
+        if cf_additional_data_file in item:
+            if check_file_exist(item[cf_additional_data_file]):
+                # Reading additional data
+                try:
+                    logger.debug(f'Reading additional data file"  {item[cf_additional_data_file]}')
+                    additional_data_file = open(item[cf_additional_data_file], 'r')
+                    additional_data = yaml.safe_load(additional_data_file)
+                    logger.debug(f'additional_data: {additional_data}')
+                except IOError:
+                    logger.error('%s : Error reading additional data file: %s' % (item_prefix, item[cf_additional_data_file]))
+                    return False
+                finally:
+                    additional_data_file.close()
+
         # Checking for existing OUTPUT directory
         try:
             result = os.path.isdir(item[cf_output_path])
@@ -238,17 +291,26 @@ def doit():
             return False
 
 
-        logger.debug(f'content data: {content_data}')
+
         # Working ...
         match item[cf_mode]:
             case 'all':
-                output_file_name = item[cf_output_path]+'/'+item[cf_output_file_name_template]
+
+                # generate path
+                j2_template_output_path = jinja2.Template(item[cf_output_path])
+                output_path = j2_template_output_path.render(content=content_data, ad=additional_data)
+
+                # generate file name
+                j2_template_output_file = jinja2.Template(item[cf_output_file_name_template])
+                output_file_name = j2_template_output_file.render(content=content_data, ad=additional_data)
+                output_file_name = output_path+'/'+output_file_name
+
                 # render, and save the results to file
                 logger.info('%s : Output file: %s' % (item_prefix, output_file_name))
 
                 try:
                     with open(output_file_name, "w") as fh:
-                        fh.write(j2_template.render(content=content_data))
+                        fh.write(j2_template.render(content=content_data, ad=additional_data))
                 except IOError:
                     logger.error('%s : Writing file IOError : %s' % (item_prefix, output_file_name))
                     continue
@@ -262,26 +324,31 @@ def doit():
                 for data_index in range(len(content_data)):
                     item_content = content_data[data_index]
 
+                    # generate path
+                    j2_template_output_path = jinja2.Template(item[cf_output_path])
+                    output_path = j2_template_output_path.render(item=item_content, ad=additional_data)
+
+                    # generate file name
                     j2_template_output_file = jinja2.Template(item[cf_output_file_name_template])
-                    output_file_name = j2_template_output_file.render(item=item_content)
-                    output_file_name = item[cf_output_path]+'/'+output_file_name
+                    output_file_name = j2_template_output_file.render(item=item_content, ad=additional_data)
+                    output_file_name = output_path+'/'+output_file_name
 
                     # checking for existing files, it's no problem
-                    if check_file_exist(output_file_name, False):
+                    if check_file_exist(output_file_name):
                         logger.info('%s : Overwriting output file: %s' % (item_prefix, output_file_name))
                     else:
                         logger.info('%s : Output file: %s' % (item_prefix, output_file_name))
 
                     try:
                         with open(output_file_name, "w") as fh:
-                            fh.write(j2_template.render(content=item_content))
+                            fh.write(j2_template.render(content=item_content, ad=additional_data))
                     except IOError:
                         logger.error('%s : Writing file IOError : %s' % (item_prefix, output_file_name))
                         continue
                     finally:
                         fh.close()
             case _:
-                logging.error('')
+                logging.error(f'Unknown mode value {item[cf_mode]}')
 
         # end of match
         logger.info('%s : Done' % item_prefix)
@@ -291,13 +358,13 @@ def doit():
 def main():
 
     args = parse_arguments()
-    logger.info('Started '+APP+' '+VERSION + ' '+GITHUBURL)
+    logger.info(f'Started {APP} {VERSION} {GITHUBURL}')
 
-    if args.verbose:
+    if args.debug:
         logger.setLevel(logging.DEBUG)
 
     logger.info("Config file: %s" % args.config)
-    if not validate_config_file(args.config):
+    if not check_config_file(args.config):
         return 1
 
     #
