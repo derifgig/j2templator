@@ -6,7 +6,10 @@ Config file - YAML
 
 Source data file format - YAML | TXT
 
-# Config file example: `j2templator.yaml`
+# Config file example: 
+```shell
+cat j2templator.yaml
+```
 
 ## Config item elements description
 
