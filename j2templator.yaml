@@ -1,9 +1,9 @@
 ---
 - name: "txt"
-  template: ./data/example/template01.j2
-  input_data_file: ./data/example/data.txt
+  template: ./example/template01.j2
+  input_data_file: ./example/data.txt
   input_data_type: txt
-  additional_data_file: ./data/example/additional-data.yaml
+  additional_data_file: ./example/additional-data.yaml
   output_path: ./output
   output_path_create: yes
   output_file_name_template: data.yml
@@ -11,7 +11,7 @@
 
 # Example: Result of item 'txt' is source for item 'yml'
 - name: "yml"
-  template: ./data/example/template02.j2
+  template: ./example/template02.j2
   #
   check_ingore_file_absent: yes
   input_data_file: ./output/data.yml

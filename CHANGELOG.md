@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## Version 0.3 
+ - Added exception "Template syntax error" for j2 templates
+ - Added key "-k|--check" : only check configuration mode
+
 ## Version 0.2 - 2023-08-21
   - field `input_data_type_yml` replaced with `input_data_file` and `input_data_type`
   - `input_data_type`: [yml|txt]. TXT format one line - one item, space is delimiter 
