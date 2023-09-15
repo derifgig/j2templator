@@ -6,22 +6,9 @@ Config file - YAML
 
 Source data file format - YAML | TXT
 
-## Config file 
+# Config file example: `j2templator.yaml`
 
-```yaml
----
-- name: "Example Item 1" 
-  template: ./data/example/template00.j2
-  input_data_file: ./data/example/data.yaml
-  input_data_type: yml
-  additional_data_file: ./data/example/additional-data.yml
-  output_path: ./output/
-  output_path_create: yes
-  output_file_name_template: output-one-{{ item.id }}.conf
-  mode: one
-```
-
-### Config item elements description
+## Config item elements description
 
 `name` - Title of config item
 
@@ -32,6 +19,8 @@ Source data file format - YAML | TXT
 `input_data_file` - (required) source data
 
 `input_data_type` - [**yml**|txt]
+
+`additional_data_file` - [yml] some data array, be a part of each item
 
 `output_path` - directory (required) for output data
 
@@ -62,7 +51,7 @@ sudo chmod +x /usr/local/bin/j2templator
 
 ```bash
 # Example data in this project
-python3 j2templator.py --config data/config-example.yaml
+python3 j2templator.py -c j2templator.yaml
 
 # 
 j2templator -c /path/to/file/config.yaml

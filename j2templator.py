@@ -7,7 +7,7 @@ import jinja2
 
 APP = "j2templator"
 GITHUBURL = "https://github.com/derifgig/j2templator"
-VERSION = "v0.2"
+VERSION = "v0.3"
 DEFAULT_LOGGING_LEVEL = logging.INFO
 CFG = []
 
@@ -61,6 +61,11 @@ def parse_arguments():
                         required=False,
                         default=False,
                         help="Debug mode")
+    parser.add_argument("-k", "--check",
+                        action="store_true",
+                        required=False,
+                        default=False,
+                        help="Only check config, no more")
     return parser.parse_args()
 
 
@@ -130,7 +135,7 @@ def check_config_file(config_file):
                     is_required_fields = False
 
             if is_required_fields:
-                logger.debug('%s : Item is valid' % item_prefix)
+                logger.debug('%s : All required fields presents.' % item_prefix)
             else:
                 is_items_valid = False
 
@@ -181,6 +186,7 @@ def check_config_file(config_file):
                 item_config[cf_output_path_create] = False
 
             # add new item to work
+            logger.info('%s : OK' % item_prefix)
             CFG.append(item_config)
 
         #
@@ -191,8 +197,6 @@ def check_config_file(config_file):
     except yaml.YAMLError as exc:
         logger.error('Error parsing YAML data from config file')
         return False
-
-
 
     # normal final of procedure
     return True
@@ -220,6 +224,9 @@ def doit():
         try:
             with open(item[cf_template]) as f:
                 j2_template = jinja2.Template(f.read())
+        except jinja2.TemplateSyntaxError as err:
+            logger.error('%s : Template syntax error in file %s: %s' % (item_prefix, item[cf_template], err.message))
+            return False
         except IOError:
             logger.error('%s : Error reading template file: %s' % (item_prefix, item[cf_template]))
             return False
@@ -311,6 +318,8 @@ def doit():
                 try:
                     with open(output_file_name, "w") as fh:
                         fh.write(j2_template.render(content=content_data, ad=additional_data))
+                except jinja2.TemplateError as err:
+                    logger.error('%s : Template error : %s' % (item_prefix, err.message))
                 except IOError:
                     logger.error('%s : Writing file IOError : %s' % (item_prefix, output_file_name))
                     continue
@@ -364,8 +373,14 @@ def main():
         logger.setLevel(logging.DEBUG)
 
     logger.info("Config file: %s" % args.config)
-    if not check_config_file(args.config):
-        return 1
+
+    check_config_result = check_config_file(args.config)
+    # if only check config
+    if args.check:
+        return check_config_result
+    else:
+        if not check_config_result:
+            return 1
 
     #
     if not doit():
