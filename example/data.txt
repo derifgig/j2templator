@@ -1,4 +1,6 @@
 # example
-login1 password1
-login2 password2
-login3 password3
+login1 $assword1
+login2 #assword2
+login3 @assword3
+
+# previous line is empty
