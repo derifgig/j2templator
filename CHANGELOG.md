@@ -1,5 +1,8 @@
 # CHANGE LOG
 
+## Version 0.4  2023-11-30
+- Fixed issue: values in quotes in source txt file
+
 ## Version 0.3 
  - Added exception "Template syntax error" for j2 templates
  - Added key "-k|--check" : only check configuration mode

@@ -6,7 +6,7 @@ Config file - YAML
 
 Source data file format - YAML | TXT
 
-# Config file example: 
+## Config file example: 
 ```shell
 cat j2templator.yaml
 ```
@@ -54,8 +54,8 @@ sudo chmod +x /usr/local/bin/j2templator
 
 ```bash
 # Example data in this project
-python3 j2templator.py -c j2templator.yaml
+./j2templator.py -c j2templator.yaml
 
-# 
+# Installed version
 j2templator -c /path/to/file/config.yaml
 ```
