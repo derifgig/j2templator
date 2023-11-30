@@ -1,6 +1,7 @@
 # example
 login1 $assword1
-login2 #assword2
+login2 '#ass word2'
 login3 @assword3
+login4 "value with spaces"
 
 # previous line is empty

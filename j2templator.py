@@ -4,6 +4,7 @@ import logging
 import os
 import yaml
 import jinja2
+import shlex
 
 APP = "j2templator"
 GITHUBURL = "https://github.com/derifgig/j2templator"
@@ -251,8 +252,10 @@ def doit():
                     content_data_file = open(item[cf_input_data_file], 'r')
                     for line in content_data_file:
                         li = line.strip()
+                        if len(li) == 0 :
+                            continue
                         if not li.startswith("#"):
-                            content_data.append(li.split())
+                            content_data.append(shlex.split(li))
                 except IOError:
                     logger.error('%s : Error reading file: %s' % (item_prefix, item[cf_input_data_file]))
                     return False
