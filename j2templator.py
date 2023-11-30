@@ -8,7 +8,7 @@ import shlex
 
 APP = "j2templator"
 GITHUBURL = "https://github.com/derifgig/j2templator"
-VERSION = "v0.3"
+VERSION = "v0.4"
 DEFAULT_LOGGING_LEVEL = logging.INFO
 CFG = []
 
