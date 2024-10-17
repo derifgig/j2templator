@@ -29,7 +29,7 @@ cat j2templator.yaml
 
 `output_path_create` - [yes,**no**] should we create output directory
 
-`output_file_mode` - **not set**, use system setting by default, exmaple: 755, 600, etc
+`output_file_mode` - **not set**, use system setting by default, example: 755, 600, etc
 
 `output_file_name_template` - (required) output file name pattern. Cat use jinja2 syntax for items from data file
 
