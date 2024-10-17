@@ -1,20 +1,32 @@
 ---
 - name: "txt"
-  template: ./example/template01.j2
-  input_data_file: ./example/data.txt
+  template: in/template01.j2
+  input_data_file: in/data.txt
   input_data_type: txt
-  additional_data_file: ./example/additional-data.yaml
-  output_path: ./output
+  additional_data_file: in/additional-data.yaml
+  output_path: out
   output_path_create: yes
   output_file_name_template: data.yml
 
-
 # Example: Result of item 'txt' is source for item 'yml'
 - name: "yml"
-  template: ./example/template02.j2
+  template: in/template02.j2
   check_ingore_file_absent: yes
-  input_data_file: ./output/data.yml
-  output_path: ./output/by-one
+  input_data_file: out/data.yml
+  output_path: out/by-one
   output_path_create: yes
   output_file_name_template: "{{ item.id }}.conf"
   mode: one
+
+- name: "shell script"
+  template: in/shell.sh.j2
+  input_data_file: commands.txt
+  input_data_type: txt
+  additional_data:
+    options:
+      - "--par1 aaa"
+      - "--par2 bbb"
+      - "--par3 ccc_ccc"
+  output_path: out
+  output_file_mode: 755
+  output_file_name_template: test.sh

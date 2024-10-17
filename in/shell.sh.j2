@@ -1,0 +1,11 @@
+#!/bin/bash
+{%- for i in content %}
+echo "{{ i[0] }}" \
+{%- if ad.options is defined %}
+{%- for opt in ad.options %}
+  {{ opt }} \
+{%- endfor %}
+{%- endif %}
+
+{%- endfor %}
+

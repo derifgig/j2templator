@@ -9,7 +9,7 @@ import yaml
 
 APP = "j2templator"
 GITHUBURL = "https://github.com/derifgig/j2templator"
-VERSION = "v0.4"
+VERSION = "v0.5b"
 DEFAULT_LOGGING_LEVEL = logging.INFO
 CFG = []
 
@@ -20,9 +20,11 @@ cf_check_ingore_file_absent = "check_ingore_file_absent"
 cf_output_path = "output_path"
 cf_output_path_create = "output_path_create"
 cf_output_file_name_template = "output_file_name_template"
+cf_output_file_mode = "output_file_mode"
 cf_input_data_file = "input_data_file"
 cf_input_data_type = "input_data_type"
 cf_additional_data_file = "additional_data_file"
+cf_additional_data = "additional_data"
 cf_mode = "mode"
 
 
@@ -198,6 +200,12 @@ def check_config_file(config_file):
             if cf_output_path_create not in item_config:
                 item_config[cf_output_path_create] = False
 
+            if cf_output_file_mode in item_config:
+                if not isinstance(item_config[cf_output_file_mode], str):
+                    item_config[cf_output_file_mode] = str(
+                        item_config[cf_output_file_mode]
+                    )
+
             # add new item to work
             logger.info("%s : OK" % item_prefix)
             CFG.append(item_config)
@@ -295,7 +303,14 @@ def doit():
         logger.debug(f"content data: {content_data}")
 
         # by default additional data not present
-        additional_data = None
+        additional_data = {}
+        additional_data_from_config = {}
+        additional_data_from_file = {}
+
+        #
+        if cf_additional_data in item:
+            additional_data_from_config = item[cf_additional_data]
+            logger.debug(f"additional_data from config: {additional_data_from_config}")
 
         # if additional_data_file present in config
         if cf_additional_data_file in item:
@@ -306,8 +321,10 @@ def doit():
                         f'Reading additional data file"  {item[cf_additional_data_file]}'
                     )
                     additional_data_file = open(item[cf_additional_data_file], "r")
-                    additional_data = yaml.safe_load(additional_data_file)
-                    logger.debug(f"additional_data: {additional_data}")
+                    additional_data_from_file = yaml.safe_load(additional_data_file)
+                    logger.debug(
+                        f"additional_data from file: {additional_data_from_file}"
+                    )
                 except IOError:
                     logger.error(
                         "%s : Error reading additional data file: %s"
@@ -316,6 +333,10 @@ def doit():
                     return False
                 finally:
                     additional_data_file.close()
+
+        # Merging additional data
+        additional_data = {**additional_data_from_file, **additional_data_from_config}
+        logger.debug(f"additional_data: {additional_data}")
 
         # Checking for existing OUTPUT directory
         try:
@@ -379,6 +400,10 @@ def doit():
                     continue
                 finally:
                     fh.close()
+
+                    # set file mode
+                    if cf_output_file_mode in item:
+                        os.chmod(output_file_name, int(item[cf_output_file_mode], 8))
 
             case "one":
 
