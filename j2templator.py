@@ -3,20 +3,20 @@ import argparse
 import logging
 import os
 import shlex
+import sys
 
 import jinja2
 import yaml
 
 APP = "j2templator"
 GITHUBURL = "https://github.com/derifgig/j2templator"
-VERSION = "v0.5b"
+VERSION = "v0.6"
 DEFAULT_LOGGING_LEVEL = logging.INFO
-CFG = []
 
 # field names in YAML config file
 cf_name = "name"
 cf_template = "template"
-cf_check_ingore_file_absent = "check_ingore_file_absent"
+cf_check_ignore_file_absent = "check_ignore_file_absent"
 cf_output_path = "output_path"
 cf_output_path_create = "output_path_create"
 cf_output_file_name_template = "output_file_name_template"
@@ -36,14 +36,14 @@ class CustomFormatter(logging.Formatter):
     red = "\x1b[31;20m"
     bold_red = "\x1b[31;1m"
     reset = "\x1b[0m"
-    format = "%(message)s"
+    fmt = "%(message)s"
 
     FORMATS = {
-        logging.DEBUG: yellow + format + reset,
-        logging.INFO: grey + format + reset,
-        logging.WARNING: magenta + format + reset,
-        logging.ERROR: red + format + reset,
-        logging.CRITICAL: bold_red + format + reset,
+        logging.DEBUG: yellow + fmt + reset,
+        logging.INFO: grey + fmt + reset,
+        logging.WARNING: magenta + fmt + reset,
+        logging.ERROR: red + fmt + reset,
+        logging.CRITICAL: bold_red + fmt + reset,
     }
 
     def format(self, record):
@@ -79,14 +79,6 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def check_file_exist(filename):
-    try:
-        result = os.path.exists(filename)
-        return result
-    except IOError:
-        return False
-
-
 def check_config_file(config_file):
 
     required_fields = [
@@ -108,144 +100,138 @@ def check_config_file(config_file):
 
     logger.debug("Validation config file: %s" % config_file)
 
-    if not check_file_exist(config_file):
+    if not os.path.exists(config_file):
         logger.error(f"Config file not found: {config_file}")
-        return False
+        return []
 
     try:
-        stream = open(config_file, "r")
+        with open(config_file, "r") as stream:
+            config_data = yaml.safe_load(stream)
     except IOError:
         logger.error("Error reading from file: %s" % config_file)
-        return False
+        return []
 
-    try:
-        config_data = yaml.safe_load(stream)
+    if config_data is None:
+        logger.error("Config file is empty: %s" % config_file)
+        return []
 
-        logger.debug("Data type in config file recognized: %s" % type(config_data))
-        is_items_valid = True
+    logger.debug("Data type in config file recognized: %s" % type(config_data))
+    is_items_valid = True
+    validated_items = []
 
-        for item_index in range(len(config_data)):
-            item_config = config_data[item_index]
-            item_name = item_config[cf_name] if cf_name in item_config else ""
-            item_prefix = "check [%s] (%s)" % (item_index, item_name)
+    for item_index, item_config in enumerate(config_data):
+        item_name = item_config.get(cf_name, "")
+        item_prefix = "check [%s] (%s)" % (item_index, item_name)
 
-            logger.debug("%s : Checking config item" % item_prefix)
+        logger.debug("%s : Checking config item" % item_prefix)
 
-            # checking for required fields
-            is_required_fields = True
-            for i in required_fields:
-                if i not in item_config:
-                    logger.error("%s : No required field: [%s]" % (item_prefix, i))
-                    is_required_fields = False
+        # checking for required fields
+        is_required_fields = True
+        for i in required_fields:
+            if i not in item_config:
+                logger.error("%s : No required field: [%s]" % (item_prefix, i))
+                is_required_fields = False
 
-            if is_required_fields:
-                logger.debug("%s : All required fields presents." % item_prefix)
-            else:
-                is_items_valid = False
+        if is_required_fields:
+            logger.debug("%s : All required fields presents." % item_prefix)
+        else:
+            is_items_valid = False
 
-            check_ingore_file_absent = False
-            if cf_check_ingore_file_absent in item_config:
-                check_ingore_file_absent = item_config[cf_check_ingore_file_absent]
+        check_ignore_file_absent = item_config.get(cf_check_ignore_file_absent, False)
 
-            if check_ingore_file_absent:
-                logger.warning("%s : Absent files will be ignored" % item_prefix)
+        if check_ignore_file_absent:
+            logger.warning("%s : Absent files will be ignored" % item_prefix)
 
-            source_files_exist = True
-            for i in files:
-                if i in item_config:
-                    if not check_file_exist(item_config[i]):
+        source_files_exist = True
+        for i in files:
+            if i in item_config:
+                if not os.path.exists(item_config[i]):
 
-                        if check_ingore_file_absent:
-                            logger.warning(
-                                "%s : Source file not found: [%s]"
-                                % (item_prefix, item_config[i])
-                            )
-                        else:
-                            logger.error(
-                                "%s : Source file not found: [%s]"
-                                % (item_prefix, item_config[i])
-                            )
-                            source_files_exist = False
+                    if check_ignore_file_absent:
+                        logger.warning(
+                            "%s : Source file not found: [%s]"
+                            % (item_prefix, item_config[i])
+                        )
+                    else:
+                        logger.error(
+                            "%s : Source file not found: [%s]"
+                            % (item_prefix, item_config[i])
+                        )
+                        source_files_exist = False
 
-            if not source_files_exist:
+        if not source_files_exist:
+            logger.error("%s : SKIPPED" % (item_prefix))
+            continue
+
+        # add default values
+        if cf_name not in item_config:
+            item_config[cf_name] = ""
+
+        if cf_mode not in item_config:
+            item_config[cf_mode] = "all"
+        else:
+            if item_config[cf_mode] not in mode_available_values:
+                logger.error(
+                    "%s : Unknown mode [%s]" % (item_prefix, item_config[cf_mode])
+                )
                 logger.error("%s : SKIPPED" % (item_prefix))
                 continue
 
-            # add default values
-            if cf_name not in item_config:
-                item_config[cf_name] = ""
+        # Default data type - yml
+        if cf_input_data_type not in item_config:
+            item_config[cf_input_data_type] = "yml"
+        else:
+            if item_config[cf_input_data_type] not in input_data_type:
+                logger.error(
+                    "%s : Unknown input data type [%s]"
+                    % (item_prefix, item_config[cf_input_data_type])
+                )
+                logger.error("%s : SKIPPED" % (item_prefix))
+                continue
 
-            if cf_mode not in item_config:
-                item_config[cf_mode] = "all"
-            else:
-                if item_config[cf_mode] not in mode_available_values:
-                    logger.error(
-                        "%s : Unknown mode [%s]" % (item_prefix, item_config[cf_mode])
-                    )
-                    logger.error("%s : SKIPPED" % (item_prefix))
-                    continue
+        if cf_output_path_create not in item_config:
+            item_config[cf_output_path_create] = False
 
-            # Default data type - yml
-            if cf_input_data_type not in item_config:
-                item_config[cf_input_data_type] = "yml"
-            else:
-                if item_config[cf_input_data_type] not in input_data_type:
-                    logger.error(
-                        "%s : Unknown input data type [%s]"
-                        % (item_prefix, item_config[cf_input_data_type])
-                    )
-                    logger.error("%s : SKIPPED" % (item_prefix))
-                    continue
+        if cf_output_file_mode in item_config:
+            if not isinstance(item_config[cf_output_file_mode], str):
+                item_config[cf_output_file_mode] = str(
+                    item_config[cf_output_file_mode]
+                )
 
-            if cf_output_path_create not in item_config:
-                item_config[cf_output_path_create] = False
+        # add new item to work
+        logger.info("%s : OK" % item_prefix)
+        validated_items.append(item_config)
 
-            if cf_output_file_mode in item_config:
-                if not isinstance(item_config[cf_output_file_mode], str):
-                    item_config[cf_output_file_mode] = str(
-                        item_config[cf_output_file_mode]
-                    )
+    #
+    if not is_items_valid:
+        logger.error("Can not continue with this config file")
+        return []
 
-            # add new item to work
-            logger.info("%s : OK" % item_prefix)
-            CFG.append(item_config)
-
-        #
-        if not is_items_valid:
-            logger.error("Can not continue with this config file")
-            return False
-
-    except yaml.YAMLError as exc:
-        logger.error("Error parsing YAML data from config file")
-        return False
-
-    # normal final of procedure
-    return True
+    return validated_items
 
 
-def doit():
+def doit(cfg):
 
-    if len(CFG) == 0:
+    if len(cfg) == 0:
         logger.error("No valid data in config. Nothing to do")
         return False
 
-    for item_index in range(len(CFG)):
-        item = CFG[item_index]
+    for item_index, item in enumerate(cfg):
         item_prefix = "exec [%s] (%s)" % (item_index, item[cf_name])
         logger.info(
             "%s : Started. Mode: %s Output path: %s"
             % (item_prefix, item[cf_mode], item[cf_output_path])
         )
 
-        if not check_file_exist(item[cf_template]):
+        if not os.path.exists(item[cf_template]):
             logger.error(
                 "%s : Template file not found: %s." % (item_prefix, item[cf_template])
             )
             continue
 
         try:
-            with open(item[cf_template]) as f:
-                j2_template = jinja2.Template(f.read())
+            with open(item[cf_template]) as fh:
+                j2_template = jinja2.Template(fh.read())
         except jinja2.TemplateSyntaxError as err:
             logger.error(
                 "%s : Template syntax error in file %s: %s"
@@ -258,33 +244,31 @@ def doit():
                 % (item_prefix, item[cf_template])
             )
             return False
-        finally:
-            f.close()
 
         # Reading input data
         match item[cf_input_data_type]:
 
             case "yml":
                 try:
-                    content_data_file = open(item[cf_input_data_file], "r")
-                    content_data = yaml.safe_load(content_data_file)
+                    with open(item[cf_input_data_file], "r") as fh:
+                        content_data = yaml.safe_load(fh)
                 except IOError:
                     logger.error(
                         "%s : Error in parsing YML file: %s"
-                        % (item_prefix, item[cf_output_path])
+                        % (item_prefix, item[cf_input_data_file])
                     )
                     return False
 
             case "txt":
                 content_data = []
                 try:
-                    content_data_file = open(item[cf_input_data_file], "r")
-                    for line in content_data_file:
-                        li = line.strip()
-                        if len(li) == 0:
-                            continue
-                        if not li.startswith("#"):
-                            content_data.append(shlex.split(li))
+                    with open(item[cf_input_data_file], "r") as fh:
+                        for line in fh:
+                            li = line.strip()
+                            if len(li) == 0:
+                                continue
+                            if not li.startswith("#"):
+                                content_data.append(shlex.split(li))
                 except IOError:
                     logger.error(
                         "%s : Error reading file: %s"
@@ -314,14 +298,14 @@ def doit():
 
         # if additional_data_file present in config
         if cf_additional_data_file in item:
-            if check_file_exist(item[cf_additional_data_file]):
+            if os.path.exists(item[cf_additional_data_file]):
                 # Reading additional data
                 try:
                     logger.debug(
                         f'Reading additional data file"  {item[cf_additional_data_file]}'
                     )
-                    additional_data_file = open(item[cf_additional_data_file], "r")
-                    additional_data_from_file = yaml.safe_load(additional_data_file)
+                    with open(item[cf_additional_data_file], "r") as fh:
+                        additional_data_from_file = yaml.safe_load(fh)
                     logger.debug(
                         f"additional_data from file: {additional_data_from_file}"
                     )
@@ -331,8 +315,6 @@ def doit():
                         % (item_prefix, item[cf_additional_data_file])
                     )
                     return False
-                finally:
-                    additional_data_file.close()
 
         # Merging additional data
         additional_data = {**additional_data_from_file, **additional_data_from_config}
@@ -378,7 +360,7 @@ def doit():
                 output_file_name = j2_template_output_file.render(
                     content=content_data, ad=additional_data
                 )
-                output_file_name = output_path + "/" + output_file_name
+                output_file_name = os.path.join(output_path, output_file_name)
 
                 # render, and save the results to file
                 logger.info("%s : Output file: %s" % (item_prefix, output_file_name))
@@ -398,19 +380,16 @@ def doit():
                         % (item_prefix, output_file_name)
                     )
                     continue
-                finally:
-                    fh.close()
 
-                    # set file mode
-                    if cf_output_file_mode in item:
-                        os.chmod(output_file_name, int(item[cf_output_file_mode], 8))
+                # set file mode
+                if cf_output_file_mode in item:
+                    os.chmod(output_file_name, int(item[cf_output_file_mode], 8))
 
             case "one":
 
                 logger.debug("Data type of content: %s" % type(content_data))
 
-                for data_index in range(len(content_data)):
-                    item_content = content_data[data_index]
+                for data_index, item_content in enumerate(content_data):
 
                     # generate path
                     j2_template_output_path = jinja2.Template(item[cf_output_path])
@@ -425,10 +404,10 @@ def doit():
                     output_file_name = j2_template_output_file.render(
                         item=item_content, ad=additional_data
                     )
-                    output_file_name = output_path + "/" + output_file_name
+                    output_file_name = os.path.join(output_path, output_file_name)
 
                     # checking for existing files, it's no problem
-                    if check_file_exist(output_file_name):
+                    if os.path.exists(output_file_name):
                         logger.info(
                             "%s : Overwriting output file: %s"
                             % (item_prefix, output_file_name)
@@ -451,8 +430,13 @@ def doit():
                             % (item_prefix, output_file_name)
                         )
                         continue
-                    finally:
-                        fh.close()
+
+                    # set file mode
+                    if cf_output_file_mode in item:
+                        os.chmod(
+                            output_file_name, int(item[cf_output_file_mode], 8)
+                        )
+
             case _:
                 logging.error(f"Unknown mode value {item[cf_mode]}")
 
@@ -471,17 +455,17 @@ def main():
 
     logger.info("Config file: %s" % args.config)
 
-    check_config_result = check_config_file(args.config)
+    cfg = check_config_file(args.config)
     # if only check config
     if args.check:
-        return check_config_result
-    else:
-        if not check_config_result:
-            return 1
+        sys.exit(0 if cfg else 1)
+
+    if not cfg:
+        sys.exit(1)
 
     #
-    if not doit():
-        return 1
+    if not doit(cfg):
+        sys.exit(1)
     #
     logger.info("Finished")
 

@@ -1,4 +1,6 @@
 # CHANGE LOG
+## Version 0.6  2027-07-11
+- Refactoring
 
 ## Version 0.4  2023-11-30
 - Fixed issue: values in quotes in source txt file

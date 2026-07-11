@@ -11,7 +11,7 @@
 # Example: Result of item 'txt' is source for item 'yml'
 - name: "yml"
   template: in/template02.j2
-  check_ingore_file_absent: yes
+  check_ignore_file_absent: yes
   input_data_file: out/data.yml
   output_path: out/by-one
   output_path_create: yes
